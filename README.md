@@ -1,5 +1,5 @@
 # shellcmd-examples
-A collection on scripts working with shellcmd repo
+A collection on scripts working with [shellcmd](https://github.com/Alogani/shellcmd) repo
 
 Because shellcmd is in heavy development, the scripts are not guaranted to be up to date.
 
