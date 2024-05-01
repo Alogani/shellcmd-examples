@@ -12,30 +12,36 @@ import shellcmd, shellcmd/ui
 import aloganimisc/naturalsortalgos
 import std/parseopt
 
-proc createImportBuilder(srcDir: Path, dest: Path = ""): Future[string] {.async.} =
+proc createImportBuilder(srcDir: Path, dest: Path = "", exports = true) {.async.} =
     ## If dest is empty, the dest will be in the same directory
     ## eg: createImportBuilder(mylib/exports) -> mylib/exports.nim
+    ## Set exports = false if you just want to build docs
     var
-        folderName = srcDir.extractFilename()
+        folderPath: string
         dest = dest
     if $dest == "":
+        folderPath = "./" & srcDir.extractFilename()
         dest = srcDir.addFileExt("nim")
+    else:
+        if srcDir.isAbsolute():
+            folderPath = srcDir
+        else:
+            folderPath = srcDir.relativePath(dest.parentDir())
 
     implicitAwait(@["sh"]):
-        var allNimFiles = sh.find(srcDir, @[matchName("*.nim") or excludeDirContent(matchName("private"))], ditchRootName = true)
+        var allNimFiles = sh.find(srcDir, @[excludeDirContent(matchName("private")) or matchName("*.nim")], ditchRootName = true)
         allNimFiles = seq[string](allNimFiles).naturalSort()
         if sh.exists(dest) and not sh.askYesNo("Overwrite " & dest):
             return
         let f = open(dest, fmWrite)
         for fileToImport in allNimFiles:
-            f.writeLine("import ./" & string(folderName / fileToImport.changeFileExt("")))
-            f.writeLine("export " & fileToImport.splitFile().name)
+            f.writeLine("import " & string(folderPath / fileToImport.changeFileExt("")))
+            if exports:
+                f.writeLine("export " & fileToImport.splitFile().name)
         f.close()
-    return dest
 
 proc main() {.async.} =
     var p = initOptParser()
-    var dest: string
     p.next()
     while true:
         case p.kind
@@ -46,10 +52,14 @@ proc main() {.async.} =
                 if p.kind != cmdArgument: raise
                 var srcDir = p.key
                 p.next()
-                if p.kind != cmdArgument:
-                    dest = await createImportBuilder(srcDir)
-                else:
-                    dest = await createImportBuilder(srcDir, p.key)
+                let dest = if p.kind == cmdArgument:
+                        p.key
+                    else:
+                        ""
+                p.next()
+                let discardExports = p.key == "discardExports"
+                await createImportBuilder(srcDir, dest, not discardExports)
+                p.next()
         else:
             break
 
