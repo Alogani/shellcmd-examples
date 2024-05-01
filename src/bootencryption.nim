@@ -1,10 +1,10 @@
 ##[
-  version       = "0.1.0"
+  version       = "0.1.1"
   author        = "alogani"
   description   = "Semi automatic full disk encryption script based on https://cryptsetup-team.pages.debian.net/cryptsetup/encrypted-boot.html"
   license       = "MIT"
 
-  requires "shellcmd = 0.1.0"
+  requires "shellcmd = 0.2.0"
 ]##
 
 ## For debian
